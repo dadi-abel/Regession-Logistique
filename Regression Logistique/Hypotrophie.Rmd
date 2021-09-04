@@ -1,0 +1,240 @@
+---
+title: "Examen Régression logistique"
+author: "Dadi Abel"
+date: "15/02/2021"
+output:
+  html_document:
+    df_print: paged
+  word_document:
+    reference_docx: StylesPourWord.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# CREATION D'UN REPERTOIRE DE TRAVAIL
+
+```{r message=FALSE,results='hide'}
+setwd("C:/Users/Dadi abel/Desktop/MesCours2021/Régression logistique/Controle de connaissance")
+getwd()
+```
+
+# CHARGER LE JEU DE DONNEE
+
+```{r message=FALSE}
+hypotrophie <- read.csv("Hypotrophie.csv", sep = ";", header = T)
+attach(hypotrophie)
+hypotrophie$Hypotrophie.recorde <- ifelse(hypotrophie$Hypotrophie==1,"hypotrophie","pas d'hypotrophie")
+hypotrophie$Tabac.recorde <- ifelse(hypotrophie$Tabac==1,"fume","ne fume pas")
+require(knitr)
+kable(head(hypotrophie[,c(-6,-7)]))
+```
+
+On dispose de données concernant l'hypotrophie néonatale et on souhaite utiliser ces données pour étudier les facteurs prédictifs de l'hypotrophie néonatale (hypotrophie néonatale = nouveau-né de poids anormalement faible).Les premières lignes du tableau :
+
+
+# EN ANALYSE UNIVARIEE, ETUDIONS LA RELATION ENTRE TABAC ET HYPOTROPHIE :
+
+## INDIQUONS-S’IL EXISTE OU NON UNE RELATION STATISTIQUEMENT SIGNIFICATIVE ENTRE TABAC ET HYPOTROPHIE,
+  
+```{r message=FALSE}
+
+modele1 <- glm(Hypotrophie ~ Tabac, data = hypotrophie, family = "binomial")
+summary(modele1)
+
+```
+
+## QUANTIFIONS CETTE RELATION PAR L'ODD'S RATIO ASSOCIE AU FAIT DE FUMER (AVEC SON INTERVALLE DE CONFIANCE)
+  
+```{r}
+resultat1 <- summary(modele1)
+(OR_tabac <- exp(resultat1$coefficients[2,1]))
+
+(borne_inf <- exp(resultat1$coefficients[2,1]-1.96*resultat1$coefficients[2,2]))
+(borne_sup <- exp(resultat1$coefficients[2,1]+1.96*resultat1$coefficients[2,2]))
+
+```
+
+CONCLUSION:
+Le tabac est significativement associée au risque d'hypotrophie néonatale.Une maman fumeuse de tabac augmente significativement le risque d'hypotrophie néonatale par rapport à une maman non fumeuse ; odd's ratio associé à une maman fumeuse plutôt qu'une non fumeuse = 2.263534 (IC95% 1.530322 à 3.348043), donc l'hypotrophie néonatale est plus fréquente chez les femmes fumeuse (OR > 1).
+  
+## CALCULEZ LE RISQUE RELATIF ASSOCIE AU FAIT DE FUMER (RISQUE RELATIF = PROBABILITE D'HYPOTROPHIE SI LA MAMAN FUME /           PROBABILITE D'HYPOTROPHIE SI LA MAMAN NE FUME PAS)
+  
+```{r}
+kable(table(hypotrophie$Tabac.recorde,hypotrophie$Hypotrophie.recorde))
+
+(RR <- (81/(81+114))/(70/(70+223))) # Calcul du risque relatif 
+
+# Vérifacation du résultat
+library(Epi)
+twoby2(hypotrophie$Tabac.recorde,hypotrophie$Hypotrophie.recorde)
+```
+
+CONCLUSION:
+Les mamans fumeurs de tabac ont 1.74 fois plus de chance de donner naissance à un enfant dont le poids est anormalement faible qu'une maman qui ne fume pas de tabac.
+
+# EN ANALYSE UNIVARIEE, ETUDIEZ LA RELATION ENTRE AGE DE LA MAMAN ET HYPOTROPHIE :
+
+## INDIQUONS-S’IL EXISTE OU NON UNE RELATION STATISTIQUEMENT SIGNIFICATIVE ENTRE AGE DE LA MAMAN ET HYPOTROPHIE,
+  
+```{r}
+modele2 <- glm(Hypotrophie ~ Age_maman, data = hypotrophie, family = "binomial")
+summary(modele2)
+
+```
+
+## QUANTIFIONS CETTE RELATION PAR L'ODD'S RATIO ASSOCIE AU FAIT D'UN AGE AUGMENTE DE 5 ANS (AVEC SON INTERVALLE DE CONFIANCE)
+  
+```{r}
+resultat2 <- summary(modele2)
+(OR_Age.maman.5ans <- exp(resultat2$coefficients[2,1])^5)
+
+(borne_inf <- exp(resultat2$coefficients[2,1]-1.96*resultat2$coefficients[2,2])^5)
+(borne_sup <- exp(resultat2$coefficients[2,1]+1.96*resultat2$coefficients[2,2])^5)
+
+```
+
+CONCLUSION:
+L'age du maman n'est pas significativement associée au risque d'hypotrophie néonatale (pvalue > 0.05). Odd's ratio associé à l'augmentation de l'age de la maman de 5 ans = 1.141053 (IC95% 0.9676563 à 1.345521), donc l'hypotrophie néonatale est plus fréquente chez les femmes fumeuse (OR > 1).
+
+## CALCULEZ LE RISQUE RELATIF ASSOCIE AU FAIT, POUR LA MAMAN, D'AVOIR 25 ANS PLUTOT QUE 20 ANS (RISQUE RELATIF = PROBABILITE     D'HYPOTROPHIE SI LA MAMAN A 25 ANS / PROBABILITE D'HYPOTROPHIE SI LA MAMAN A 20 ANS)
+  
+```{r}
+don <- subset(hypotrophie,(Age_maman==25 | Age_maman==20))
+kable((table(don$Age_maman,don$Hypotrophie.recorde)))
+(RR <- (8/(23+8))/(6/(17+6)))
+
+```
+
+CONCLUSION:
+Les mamans agées de 25 ans  ont 1 fois plus de chance de donner naissance à un enfant dont le poids est anormalement faible qu'une maman agées de 20 ans.
+
+## FAITES LE CALCUL DU RISQUE RELATIF CETTE FOIS POUR UNE MAMAN AYANT 35 ANS PAR RAPPORT A UNE MAMAN AYANT 30 ANS (RISQUE        RELATIF = PROBABILITE D'HYPOTROPHIE SI LA MAMAN A 35 ANS / PROBABILITE D'HYPOTROPHIE SI LA MAMAN A 30 ANS).
+  
+```{r}
+don <- subset(hypotrophie,(Age_maman==35 | Age_maman==30))
+kable(table(don$Age_maman,don$Hypotrophie.recorde))
+(RR <- (6/(5+6))/(13/(13+14)))
+
+```
+
+CONCLUSION:
+Les mamans agées de 35 ans  ont 1.13 fois plus de chance de donner naissance à un enfant dont le poids est anormalement faible qu'une maman agées de 30 ans.
+
+# DEFINISSONS LE MEILLEUR MODELE EN NE GARDANT QUE LES VARIABLES QUI NOUS SEMBLENT PERTINENTES PUIS VALIDEZ CE MODELE PAR UN     TEST DE STUKEL.
+
+## DEFINISSONS LE MEILLEUR MODELE
+  
+```{r}
+modele3 <- glm(Hypotrophie ~ Rang_naissance + Tabac + Age_maman + Poids_maman,family = "binomial")
+summary(modele3)
+step(modele3)
+
+```
+
+Étape 1
+On enlève ME
+Le modèle sans Rang_naissance est celui qui a le meilleur AIC (AIC plus petit). 
+
+Étape 2
+Le modèle complet est celui qui a le meilleur AIC. 
+Il n'y a plus rien à enlever. On s'arrête là.
+
+```{r}
+meilleur.modele <- glm(formula = Hypotrophie ~ Tabac + Age_maman + Poids_maman,family = "binomial")
+summary(meilleur.modele)
+
+```
+   
+## VALIDATION DU MODELE PAR UN TEST DE STUKEL
+   
+```{r}
+# ETUDE DE LA RELATION ENTRE TABAC, AGE_MAMAN, POIDS_MAMAN ET HYPOTROPHIE - TEST DE STUKEL
+
+logit <- meilleur.modele$linear.predictors # on récupère les logit
+
+# on crée les variables supplémentaires
+lin2.plus <- c() 
+lin2.moins <- c() 
+
+for (i in 1:length(logit)) {# on démarre une boucle qui balaye chaque logit
+  
+  if(logit[i]>0){ # on teste si la i ème valeur de logit est positive
+    lin2.plus[i] <- 0.5*logit[i]^2
+    lin2.moins[i] <- 0
+  }
+  else{
+    lin2.plus[i] <- 0
+    lin2.moins[i] <- -0.5*logit[i]^2
+  }
+}
+
+
+d.plus <- data.frame(hypotrophie,lin2.plus,lin2.moins) # on ajoute les variables créées à la table de base
+
+r.plus <- glm(Hypotrophie ~ Tabac + Age_maman + Poids_maman + lin2.plus + lin2.moins, data=d.plus, family = "binomial")
+
+summary(r.plus) # on refait la régression avec les variables supplémentaires
+
+a.plus <- anova(r.plus, test="Chisq") # on fait l'analyse de déviance
+
+x = a.plus[5,2] + a.plus[6,2] # on récupère la déviance supprimée
+
+p.value = 1 - pchisq(x, 2) # on calcule la p.value (distribution du Chi2 avec 2ddl)
+
+```
+   
+## AVEC CE MODELE, DETERMINEZ LA MATRICE DE VRAISEMBLANCE
+      
+```{r}
+proba_hypotrophie <- predict(meilleur.modele,hypotrophie, type = "response")
+summary(proba_hypotrophie)
+
+p_class <- ifelse(proba_hypotrophie > 0.5, "Hypotrophie_prévue","Pas_d'hypotrophie_prévue.")
+kable(table(p_class,hypotrophie$Hypotrophie.recorde))
+
+```
+
+### CALCULONS LE TAUX D'ERREUR
+### LE TAUX D'ERREUR = MAL CLASSES / EFFECTIF TOTAL
+
+```{r}
+mal.classés <- 13 + 135
+effectif.total <- (16+13+135+324)
+(taux.erreur <- (mal.classés/effectif.total)*100)
+
+```
+
+### CALCULEZ LA SENSIBILITE
+### LA SENSIBILITE 	= PROPORTION D'EVENEMENTS PREDITS PARMI LES REELS 
+
+```{r}
+(sensibilite <- ((16)/(16 + 135))*100)
+
+```
+
+### CALCULEZ LA SPECIFICITE
+### LA SPECIFICITE = PROPORTION DE NON-EVENEMENTS PREDITS PARMI LES REELS
+
+```{r}
+(specificite <- (324/(13 + 324))*100)
+
+```
+
+### CALCULEZ LES VALEURS PREDICTIVES POSITIVES.
+### LA VALEUR PREDICTIVE POSITIVE = PROPORTION D'EVENEMENTS REELS PARMI LES PREDITS
+
+```{r}
+(val.pred.positive <- (16/(16 + 13))*100)
+
+```
+
+### CALCULEZ LES VALEURS PREDICTIVES NEGATIVES.
+### LA VALEUR PREDICTIVE NEGATIVE = PROPORTION DE NON-EVENEMENTS REELS PARMI LES PREDITS
+
+```{r}
+(val.pred.negative <- (324/(135 + 324))*100)
+
+```
+
